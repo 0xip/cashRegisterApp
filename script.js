@@ -36,13 +36,27 @@ let currencyUnits = [
     }
     if(cashValue === price){
         change.innerText = "No change due - customer paid with exact cash";
+        return;
     }
+
+    const changeResult = getChange(changeDue, cid);
+
+    if(changeResult.status === "INSUFFICIENT_FUNDS" || changeResult.status === "CLOSED" ){
+         change.innerText = `Status: ${changeResult.status} ${formatChange(changeResult.change)}`
+    }else {
+        let changeText = `Status: OPEN ${formatChange(changeResult.change)}`;
+        change.innerText = changeText.trim()
+    }
+
   });
 
 const getChange = (changeDue,cid) => {
     let totalCid = parseFloat(cid.reduce((sum, [_, amount])=> sum + amount, 0).toFixed(2));
     if(totalCid < changeDue){
         return {status: "INSUFFICIENT_FUNDS", change: []}
+    } else if (totalCid === changeDue) {
+        const filteredCid = cid.filter(([_, amount]) => amount > 0);
+        return { status: "CLOSED", change: filteredCid };
     }
 
     let changeArr = [];
@@ -57,7 +71,7 @@ const getChange = (changeDue,cid) => {
             let amountFromUnit = 0;
 
             while(remainingChange >= unitValue && unitInDrawer > 0){
-                remainingChange = (remainingChange - unitValue).toFixed(2);
+                remainingChange = parseFloat((remainingChange - unitValue).toFixed(2));
                 unitInDrawer -=unitValue;
                 amountFromUnit += unitValue;
             }
@@ -77,3 +91,5 @@ const getChange = (changeDue,cid) => {
 
     return {status: "OPEN", change: changeArr }
 } 
+
+const formatChange = changeArr => changeArr.filter(([_, amount]) => amount > 0).map(([unit, amount]) => `${unit}: $${amount.toFixed(2)}`).join(" ");
